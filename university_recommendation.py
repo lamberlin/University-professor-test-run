@@ -35,13 +35,21 @@ df = df.rename(columns={"index": "University"})
 
 # Create a function to recommend universities based on user preferences
 def recommend_universities(user_preferences):
-    ranked_df = df.copy()
+    filtered_df = df.copy()
     for preference, value in user_preferences.items():
         if preference != "major":
-            ranked_df[preference] *= value / 100.0
-    ranked_df["Total Rank"] = ranked_df.sum(axis=1)
-    ranked_df = ranked_df.sort_values(by="Total Rank", ascending=False)
-    return ranked_df
+            # Normalize the preference values to be in the range [0, 100]
+            filtered_df[preference] = (filtered_df[preference] - filtered_df[preference].min()) / (filtered_df[preference].max() - filtered_df[preference].min()) * 100
+            filtered_df = filtered_df[filtered_df[preference] <= value]
+    
+    # Calculate the total rank based on the preferences
+    filtered_df["Total Rank"] = filtered_df[["reputation", "view_importance", "ethnic_culture", "academic_culture", "study_difficulties", "tech_strategy"]].sum(axis=1)
+    
+    # Sort the DataFrame by total rank in descending order
+    filtered_df = filtered_df.sort_values(by="Total Rank", ascending=False)
+    
+    return filtered_df
+
 
 # Streamlit app
 st.title("University Recommendation System")
