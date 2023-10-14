@@ -67,7 +67,7 @@ tech_strategy = st.sidebar.slider("Tech Strategy Preference (0-100)", 0, 100, 50
 user_preferences = {
     "major": major,
     "reputation": reputation,
-    "view_importance": view_importance,
+    "whose_view_importance": view_importance,
     "ethnic_culture": ethnic_culture,
     "academic_culture": academic_culture,
     "study_difficulties": study_difficulties,
