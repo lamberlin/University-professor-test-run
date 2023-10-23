@@ -1,3 +1,4 @@
+!pip install joblib==1.3.2
 import streamlit as st
 import pandas as pd
 import os
