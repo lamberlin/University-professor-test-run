@@ -195,8 +195,8 @@ else:
             show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
             st.success("✅Recommend success")
             st.dataframe(show_df.sort_values(by='rank')[:3])
-            universities = show_df_sorted.index.tolist()
-            probabilities = show_df_sorted['probability'].tolist()
+            universities = show_df.sort_values(by='rank').index.tolist()
+            probabilities = show_df.sort_values(by='rank')['probability'].tolist()
 
             st.markdown(f"""
                         Based on your input and academic preference, it seems that:
