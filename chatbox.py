@@ -7,8 +7,8 @@ from nltk.corpus import stopwords
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-nltk.download('vader_lexicon')
-nltk.download('stopwords')
+# nltk.download('vader_lexicon')
+# nltk.download('stopwords')
 sia = SentimentIntensityAnalyzer()
 stop_words = set(stopwords.words('english'))
 
