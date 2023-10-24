@@ -16,6 +16,20 @@ st.write(
     '<h1 style="color: #E1930F;">University-recommendation</h1></img>'
     '</div>',
     unsafe_allow_html=True)
+st.markdown("""
+<style>
+.arrow {
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 15px solid black;
+  display: inline-block;
+  margin-right: 5px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 University_replace = {
     'University of California, Berkeley': 'University of California Berkeley',
@@ -97,14 +111,18 @@ if 'rec' in st.session_state:
         st.session_state["weight"] = cac_weight(cac_df)
         st.experimental_rerun()
 else:
-    st.markdown("<br>", unsafe_allow_html=True)  # This adds a bit of space
-#     st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases that show your preference of the University?</strong></div>", 
-#     unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)  # space
+    st.markdown("""
+<div class="arrow"></div><strong>Check the sidebar for more preferences!</strong>
+""", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)  
+    st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases that show your preference of the University?</strong></div>", 
+    unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)  # space
 
     bullet_col = st.columns([1])[0]  # creates a single column
 
     with bullet_col:
-        # Here we increase the font size using inline CSS
         st.markdown("<div style='text-align:center; font-size: 24px;'>Examples:</div>", unsafe_allow_html=True)
         bullet_list = """
         <div style='text-align:center;'>
@@ -117,22 +135,10 @@ else:
         """
         st.markdown(bullet_list, unsafe_allow_html=True)
 
-#     answer = st.text_input('Give key phrases that show your preference of University?', key="text_area", placeholder='Enter your activity here:')
-    font_style = """
-        <style>
-        #font-style {
-        font-family: 'Times New Roman', Times, serif;
-        color: black;
-        font-size: 24px;}
-        </style>
-        """
-    st.markdown(font_style, unsafe_allow_html=True)
-
-# Your question with custom font
-    st.markdown('<div id="font-style">Give key phrases that show your preference of University?</div>', unsafe_allow_html=True)
-
-    answer = st.text_input('', key="text_area", placeholder='Enter your activity here:')
-
+    answer = st.text_input(
+        "",  
+        placeholder="Enter some key phrases",
+    )
     if st.button("Recommend"):
         uni_dic = {}
         for cl in st.session_state["University"].classes_:
@@ -192,19 +198,32 @@ else:
                 weight_df = pd.merge(weight_df, pd.DataFrame(weight_), on='University')
                 weight_df["weight1"] = [0.5 for _ in range(weight_df.shape[0])]
                 weight_df["weight2"] = [0.5 for _ in range(weight_df.shape[0])]
+
             else:
                 for uni in chat_result:
                     if uni in University_replace.keys():
-                        show_df.loc[University_replace[uni], "probability"] = show_df.loc[University_replace[
-                            uni], "probability"] * st.session_state['weight'][0] + chat_result[uni] * \
-                                                                              st.session_state['weight'][1]
+                        show_df.loc[University_replace[uni], "probability"] = (
+                            show_df.loc[University_replace[uni], "probability"] * st.session_state['weight'][0] 
+                            + chat_result[uni] * st.session_state['weight'][1]
+                        )
                     else:
-                        show_df.loc[uni, "probability"] = show_df.loc[uni, "probability"] * st.session_state['weight'][
-                            0] + chat_result[uni] * st.session_state['weight'][1]
+                        show_df.loc[uni, "probability"] = (
+                            show_df.loc[uni, "probability"] * st.session_state['weight'][0]
+                            + chat_result[uni] * st.session_state['weight'][1]
+                        )
 
+            show_df["probability"] = (show_df["probability"] * 100).round(2)
             st.success("✅Recommend success")
             show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
-            st.dataframe(show_df.sort_values(by='rank')[:3])
+            show_df_sorted = show_df.sort_values(by='rank')[:3]
+            st.dataframe(show_df_sorted)
+
+            universities = show_df_sorted.index.tolist()
+            probabilities = show_df_sorted['probability'].tolist()
+
+            st.markdown(f"""
+                    Based on your input and academic preference, it seems that <strong>{universities[0]}</strong> with a probability of <strong>{probabilities[0]}%</strong>,<strong> {universities[1]}</strong> with a probability of <strong>{probabilities[1]}%</strong>, and <strong>{universities[2]}</strong> with a probability of <strong>{probabilities[2]}%</strong>may be good fits for you.
+                    """, unsafe_allow_html=True)
 
             if 'weight' not in st.session_state:
                 st.button('mark for above University')
