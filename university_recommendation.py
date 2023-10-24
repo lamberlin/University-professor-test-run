@@ -195,16 +195,7 @@ else:
             show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
             st.success("✅Recommend success")
             st.dataframe(show_df.sort_values(by='rank')[:3])
-            universities = show_df.sort_values(by='rank').index.tolist()
-            probabilities = show_df.sort_values(by='rank')['probability'].tolist()
 
-            st.markdown(f"""
-                        Based on your input and academic preference, it seems that:
-                        - {universities[0]} with a probability of {probabilities[0]},
-                        - {universities[1]} with a probability of {probabilities[1]}, and 
-                        - {universities[2]} with a probability of {probabilities[2]} 
-                        may be good fits for you.
-                        """)
 
             if 'weight' not in st.session_state:
                 st.button('mark for above University')
