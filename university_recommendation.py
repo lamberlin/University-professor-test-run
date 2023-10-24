@@ -110,7 +110,7 @@ else:
         des_df = model_data[
             [_ for _ in model_data.columns if _ not in [_.split('.pkl')[0] for _ in os.listdir('models')]]].describe()
         st.write("Your Answer: {}".format(answer))
-        st.write("You Select Topic is {}".format(topic))
+ #       st.write("You Select Topic is {}".format(topic))
         with st.spinner("Calculating, please wait..."):
             pred_lis = []
             label_dic = {
