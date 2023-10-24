@@ -191,8 +191,9 @@ else:
                         show_df.loc[uni, "probability"] = show_df.loc[uni, "probability"] * st.session_state['weight'][
                             0] + chat_result[uni] * st.session_state['weight'][1]
 
-            st.success("✅Recommend success")
+            show_df['probability'] = show_df['probability'].apply(lambda x: '{:.2f}%'.format(x*100))
             show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
+            st.success("✅Recommend success")
             st.dataframe(show_df.sort_values(by='rank')[:3])
 
             if 'weight' not in st.session_state:
