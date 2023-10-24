@@ -167,7 +167,7 @@ else:
             ), columns=list(uni_dic.keys()), index=['probability']).T
             weight_df = show_df.reset_index().rename(columns={'index': 'University', 'probability': 'Model1'})
 
-            chat_result = predict_universities(answer, topic)
+            chat_result = predict_universities(answer)
             weight_ = []
             if 'weight' not in st.session_state:
                 for uni in chat_result:
