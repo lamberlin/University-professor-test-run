@@ -13,7 +13,6 @@ st.set_page_config(
 )
 st.write(
     '<div style="text-align: center;">'
-    '<img src="https://i.imgur.com/CMfb6aI.png" style="width: 20%;height:20%">'
     '<h1 style="color: #E1930F;">University-recommendation</h1></img>'
     '</div>',
     unsafe_allow_html=True)
@@ -31,17 +30,22 @@ if 'University' not in st.session_state:
         st.session_state[_.split('.pkl')[0]] = joblib.load(os.path.join('models', _))
 else:
     pass
-
+st.sidebar.markdown(
+    '<div style="text-align: center; margin-top: 0; padding-top: 0;margin-bottom: 20px;">'
+    '<img src="https://i.imgur.com/CMfb6aI.png" style="width: 30%;height:30%">'
+    '</div>',
+    unsafe_allow_html=True)
 st.sidebar.markdown("""
 <style>
     .big-font {
         font-family: 'Times New Roman', Times, serif;
         color: orange;
-        font-size:30px !important;
+        font-size:20px !important;
         text-align:center;
+        margin-bottom: 20px;
     }
 </style>
-<div class='big-font'>Other important aspects to you</div>
+<div class='big-font'>Other important academic preference to you</div>
 """, unsafe_allow_html=True)
 USNEWSmajor_ranking = st.sidebar.slider('USNEWS major ranking', 0.0, 100.0, 10.0, 0.1)
 qsmajor_ranking = st.sidebar.slider('QS major ranking', 0.0, 100.0, 10.0, 0.1)
@@ -93,14 +97,31 @@ if 'rec' in st.session_state:
         st.session_state["weight"] = cac_weight(cac_df)
         st.experimental_rerun()
 else:
-    with st.chat_message("assistant"):
-        st.write("what's your preference with University?")
-    answer = st.text_input(
-        label="answer",
-        placeholder="Enter your Answer here",
-        label_visibility="hidden",
-    )
+    st.markdown("<br>", unsafe_allow_html=True)  # This adds a bit of space
+    st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases that show your preference of the University?</strong></div>", 
+    unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)  # This adds a bit of space
 
+    bullet_col = st.columns([1])[0]  # creates a single column
+
+    with bullet_col:
+        # Here we increase the font size using inline CSS
+        st.markdown("<div style='text-align:center; font-size: 24px;'>Examples:</div>", unsafe_allow_html=True)
+        bullet_list = """
+        <div style='text-align:center;'>
+            <ul style='display:inline-block; text-align:left; font-size: 22px;'> <!-- Adjusted the font-size here -->
+                <li><span class="copyable-text" onclick="copyToClipboard('well online leaning courses')">well online leaning courses</span></li>
+                <li><span class="copyable-text" onclick="copyToClipboard('diversed major setting')">diversed major setting</span></li>
+                <li><span class="copyable-text" onclick="copyToClipboard('beautiful library')">beautiful library</span></li>
+            </ul>
+        </div>
+        """
+        st.markdown(bullet_list, unsafe_allow_html=True)
+
+    answer = st.text_input(
+        "",  
+        placeholder="Enter some key phrases",
+    )
     if st.button("Recommend"):
         uni_dic = {}
         for cl in st.session_state["University"].classes_:
@@ -183,3 +204,7 @@ else:
                 st.session_state.pop('weight_df')
                 if st.button("finish"):
                     st.experimental_rerun()
+st.markdown(
+    "<p style='text-align:center; color: #C5C5C5;'>Free prototype preview. AI may sometimes provide innacurate information. This model was trained on Reddit posts in r/collegeresults. Results will be biased towards posts from the subreddit.</p>",
+    unsafe_allow_html=True,
+)
