@@ -98,9 +98,8 @@ if 'rec' in st.session_state:
         st.experimental_rerun()
 else:
     st.markdown("<br>", unsafe_allow_html=True)  # This adds a bit of space
-    st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases that show your preference of the University?</strong></div>", 
-    unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)  # This adds a bit of space
+#     st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases that show your preference of the University?</strong></div>", 
+#     unsafe_allow_html=True)
 
     bullet_col = st.columns([1])[0]  # creates a single column
 
@@ -118,10 +117,22 @@ else:
         """
         st.markdown(bullet_list, unsafe_allow_html=True)
 
-    answer = st.text_input(
-        "",  
-        placeholder="Enter some key phrases",
-    )
+#     answer = st.text_input('Give key phrases that show your preference of University?', key="text_area", placeholder='Enter your activity here:')
+    font_style = """
+        <style>
+        #font-style {
+        font-family: 'Times New Roman', Times, serif;
+        color: black;
+        font-size: 24px;}
+        </style>
+        """
+    st.markdown(font_style, unsafe_allow_html=True)
+
+# Your question with custom font
+    st.markdown('<div id="font-style">Give key phrases that show your preference of University?</div>', unsafe_allow_html=True)
+
+    answer = st.text_input('', key="text_area", placeholder='Enter your activity here:')
+
     if st.button("Recommend"):
         uni_dic = {}
         for cl in st.session_state["University"].classes_:
@@ -191,11 +202,9 @@ else:
                         show_df.loc[uni, "probability"] = show_df.loc[uni, "probability"] * st.session_state['weight'][
                             0] + chat_result[uni] * st.session_state['weight'][1]
 
-            show_df['probability'] = show_df['probability'].apply(lambda x: '{:.2f}%'.format(x*100))
-            show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
             st.success("✅Recommend success")
+            show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
             st.dataframe(show_df.sort_values(by='rank')[:3])
-
 
             if 'weight' not in st.session_state:
                 st.button('mark for above University')
