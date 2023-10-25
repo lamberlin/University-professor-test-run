@@ -3,25 +3,21 @@ import numpy as np
 
 class EpsilonGreedyMAB:
     def __init__(self, epsilon, n_arms):
-        self.epsilon = epsilon  # Exploration probability
-        self.n_arms = n_arms  # Number of arms/models
-        self.counts = np.zeros(n_arms)  # Count of selections for each arm
-        self.values = np.zeros(n_arms)  # Value estimate for each arm
+        self.epsilon = epsilon  
+        self.n_arms = n_arms 
+        self.counts = np.zeros(n_arms) 
+        self.values = np.zeros(n_arms)  
 
     def select_arm(self):
-        # With probability epsilon, select a random arm
         if np.random.rand() < self.epsilon:
             return np.random.choice(self.n_arms)
-        # Otherwise, select the arm with the current highest value
         else:
             return np.argmax(self.values)
 
     def update(self, chosen_arm, reward):
-        # Update counts and compute new value based on received reward
         self.counts[chosen_arm] += 1
         n = self.counts[chosen_arm]
         value = self.values[chosen_arm]
-        # New value is a running average of the rewards for this arm
         new_value = ((n - 1) * value + reward) / n
         self.values[chosen_arm] = new_value
 
@@ -40,20 +36,36 @@ def mab_tune_weights(data, epsilon=0.1):
         predicted_score_chosen = model_scores[i, chosen_arm]
         predicted_score_not_chosen = model_scores[i, not_chosen_arm]
 
-        if user_scores[i] > 5:
+        reward = 0 
+
+        if user_scores[i] == 9:
+            if predicted_score_chosen > predicted_score_not_chosen:
+                reward = 2
+            else:
+                reward = -2
+
+        elif user_scores[i] == 7:
             if predicted_score_chosen > predicted_score_not_chosen:
                 reward = 1
             else:
                 reward = -1
-        else:
+
+        elif user_scores[i] == 3:
             if predicted_score_chosen < predicted_score_not_chosen:
                 reward = 1
             else:
                 reward = -1
 
+        elif user_scores[i] == 1:
+            if predicted_score_chosen < predicted_score_not_chosen:
+                reward = 2
+            else:
+                reward = -2
+
         mab.update(chosen_arm, reward)
 
     return mab.values
+
 
 
 def softmax(x):
