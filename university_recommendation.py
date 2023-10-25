@@ -13,7 +13,8 @@ st.set_page_config(
 )
 st.write(
     '<div style="text-align: center;">'
-    '<h1 style="color: #E1930F;">University-recommendation</h1></img>'
+    '<h1 style="color: #E1930F;">University-recommendation</h1>'
+    '<a href="https://docs.google.com/document/d/13BochD6AsN-zTQwEndk0LW0VdMjrbr0OLvmTaKGyYvc/edit?usp=sharing" target="_blank">Show me how to use this</a>'
     '</div>',
     unsafe_allow_html=True)
 st.markdown("""
@@ -29,8 +30,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
-
-
 University_replace = {
     'University of California, Berkeley': 'University of California Berkeley',
     'University of California, Los Angeles': 'University of California Los Angeles (UCLA)',
@@ -70,11 +69,11 @@ mean_students_per_staff = st.sidebar.slider('Student culture vs Professor cultur
 mean_international_students = st.sidebar.slider('Diversed ethnic culture', 0.0, 100.0, 10.0, 0.1)
 avgDifficulty = st.sidebar.slider('Academically laid back vs academically rigorous', 0.0, 100.0, 10.0, 0.1)
 topic = st.sidebar.selectbox('students view topic', ['Online learning', 'Career opportunities',
-                                           'General academic quality', 'Admission process',
-                                           'Diversity and inclusion', 'Student opportunities',
-                                           'Major programs', 'Financial aid and scholarships',
-                                           'Administration and school policies',
-                                           'Technology and computer labs'])
+                                                     'General academic quality', 'Admission process',
+                                                     'Diversity and inclusion', 'Student opportunities',
+                                                     'Major programs', 'Financial aid and scholarships',
+                                                     'Administration and school policies',
+                                                     'Technology and computer labs'])
 rating = st.sidebar.slider('Student view on University', 0.0, 100.0, 10.0, 0.1)
 studentview_major = st.sidebar.slider('Student view on major', 0.0, 100.0, 10.0, 0.1)
 avgRating = st.sidebar.slider('Student view on professor', 0.0, 100.0, 10.0, 0.1)
@@ -97,30 +96,69 @@ if 'rec' in st.session_state:
         '<h2 style="color: #6495ED;">Mark For University</h2>',
         unsafe_allow_html=True)
     st.dataframe(st.session_state["rec"])
-    col1, col2, col3 = st.columns([3.3, 3.3, 3.3])
+    col1, col2, col21, col22, col23 = st.columns([2, 1, 1, 1, 1])
+    col3, col4, col41, col42, col43 = st.columns([2, 1, 1, 1, 1])
+    col5, col6, col61, col62, col63 = st.columns([2, 1, 1, 1, 1])
     with col1:
-        marks1 = st.number_input(label=st.session_state["rec"].index[0], min_value=0, max_value=10)
+        st.write(st.session_state["rec"]["University"][0])
     with col2:
-        marks2 = st.number_input(label=st.session_state["rec"].index[1], min_value=0, max_value=10)
+        if st.button("👍👍"):
+            st.session_state["marks1"] = 9
+    with col21:
+        if st.button("👍"):
+            st.session_state["marks1"] = 7
+    with col22:
+        if st.button("👎"):
+            st.session_state["marks1"] = 3
+    with col23:
+        if st.button("👎👎"):
+            st.session_state["marks1"] = 1
     with col3:
-        marks3 = st.number_input(label=st.session_state["rec"].index[2], min_value=0, max_value=10)
+        st.write(st.session_state["rec"]["University"][1])
+    with col4:
+        if st.button("👍👍", key='1'):
+            st.session_state["marks2"] = 9
+    with col41:
+        if st.button("👍", key='2'):
+            st.session_state["marks2"] = 7
+    with col42:
+        if st.button("👎", key='3'):
+            st.session_state["marks2"] = 3
+    with col43:
+        if st.button("👎👎", key='4'):
+            st.session_state["marks2"] = 1
+    with col5:
+        st.write(st.session_state["rec"]["University"][2])
+    with col6:
+        if st.button("👍👍", key='11'):
+            st.session_state["marks3"] = 9
+    with col61:
+        if st.button("👍", key='21'):
+            st.session_state["marks3"] = 7
+    with col62:
+        if st.button("👎", key='31'):
+            st.session_state["marks3"] = 3
+    with col63:
+        if st.button("👎👎", key='41'):
+            st.session_state["marks3"] = 1
     if st.button('submit'):
         st.session_state.pop('rec')
         cac_df = st.session_state["weight_df"]
-        cac_df["User scores"] = [marks1, marks2, marks3]
+        cac_df["User scores"] = [st.session_state["marks1"], st.session_state["marks2"], st.session_state["marks3"]]
         st.session_state["weight"] = cac_weight(cac_df)
         st.experimental_rerun()
 else:
-    st.markdown("<br>", unsafe_allow_html=True)  # space
+    st.markdown("<br>", unsafe_allow_html=True) #space
     st.markdown("""
 <div class="arrow"></div><strong>Check the sidebar for more preferences!</strong>
 """, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)  
-    st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases that show your preference of the University?</strong></div>", 
-    unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)  # space
+    st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases "
+                "that show your preference of the University?</strong></div>",
+                unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)  
 
-    bullet_col = st.columns([1])[0]  # creates a single column
+    bullet_col = st.columns([1])[0]  
 
     with bullet_col:
         st.markdown("<div style='text-align:center; font-size: 24px;'>Examples:</div>", unsafe_allow_html=True)
@@ -136,8 +174,9 @@ else:
         st.markdown(bullet_list, unsafe_allow_html=True)
 
     answer = st.text_input(
-        "",  
+        label="answer",
         placeholder="Enter some key phrases",
+        label_visibility='hidden'
     )
     if st.button("Recommend"):
         uni_dic = {}
@@ -148,7 +187,6 @@ else:
         des_df = model_data[
             [_ for _ in model_data.columns if _ not in [_.split('.pkl')[0] for _ in os.listdir('models')]]].describe()
         st.write("Your Answer: {}".format(answer))
- #       st.write("You Select Topic is {}".format(topic))
         with st.spinner("Calculating, please wait..."):
             pred_lis = []
             label_dic = {
@@ -186,7 +224,7 @@ else:
 
             chat_result = predict_universities(answer)
             weight_ = []
-            if 'weight' not in st.session_state:
+            if 'weight' not in st.session_state and chat_result != 'No matching universities found.':
                 for uni in chat_result:
                     if uni in University_replace.keys():
                         weight_.append({'University': University_replace[uni], 'Model2': chat_result[uni]})
@@ -198,43 +236,46 @@ else:
                 weight_df = pd.merge(weight_df, pd.DataFrame(weight_), on='University')
                 weight_df["weight1"] = [0.5 for _ in range(weight_df.shape[0])]
                 weight_df["weight2"] = [0.5 for _ in range(weight_df.shape[0])]
-
+            elif 'weight' not in st.session_state and chat_result == 'No matching universities found.':
+                pass
             else:
                 for uni in chat_result:
                     if uni in University_replace.keys():
-                        show_df.loc[University_replace[uni], "probability"] = (
-                            show_df.loc[University_replace[uni], "probability"] * st.session_state['weight'][0] 
-                            + chat_result[uni] * st.session_state['weight'][1]
-                        )
+                        show_df.loc[University_replace[uni], "probability"] = show_df.loc[University_replace[
+                            uni], "probability"] * st.session_state['weight'][0] + chat_result[uni] * \
+                                                                              st.session_state['weight'][1]
                     else:
-                        show_df.loc[uni, "probability"] = (
-                            show_df.loc[uni, "probability"] * st.session_state['weight'][0]
-                            + chat_result[uni] * st.session_state['weight'][1]
-                        )
+                        show_df.loc[uni, "probability"] = show_df.loc[uni, "probability"] * st.session_state['weight'][
+                            0] + chat_result[uni] * st.session_state['weight'][1]
 
-            show_df["probability"] = (show_df["probability"] * 100).round(2)
             st.success("✅Recommend success")
             show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
-            show_df_sorted = show_df.sort_values(by='rank')[:3]
-            st.dataframe(show_df_sorted)
+            show_df["probability"] = show_df["probability"].map(lambda x: '{:.2f}%'.format(x*100))
+            st.dataframe(show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[["rank", "University", "probability"]])
 
-            universities = show_df_sorted.index.tolist()
-            probabilities = show_df_sorted['probability'].tolist()
-
-            st.markdown(f"""
-                    Based on your input and academic preference, it seems that <strong>{universities[0]}</strong> with a probability of <strong>{probabilities[0]}%</strong>,<strong> {universities[1]}</strong> with a probability of <strong>{probabilities[1]}%</strong>, and <strong>{universities[2]}</strong> with a probability of <strong>{probabilities[2]}%</strong>may be good fits for you.
-                    """, unsafe_allow_html=True)
-
-            if 'weight' not in st.session_state:
+            if 'weight' not in st.session_state and chat_result != 'No matching universities found.':
                 st.button('mark for above University')
-                st.session_state["rec"] = show_df.sort_values(by='rank')[:3]
-                st.session_state["weight_df"] = weight_df.set_index('University').loc[st.session_state["rec"].index]
+                st.session_state["rec"] = show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[["rank", "University", "probability"]]
+                st.session_state["weight_df"] = weight_df.set_index('University').loc[st.session_state["rec"]["University"]]
+            elif chat_result == 'No matching universities found.':
+                if st.button("finish"):
+                    st.experimental_rerun()
             else:
                 st.session_state.pop('weight')
                 st.session_state.pop('weight_df')
+                st.write("Based on your input and academic preference, It seems  that {} with probability "
+                         "{},{} with probability of {}, {} with probability of {} maybe be good "
+                         "fits for you".format(show_df.sort_values(by='rank')[:3].index[0],
+                                               show_df.sort_values(by='rank')[:3]["probability"][0],
+                                               show_df.sort_values(by='rank')[:3].index[1],
+                                               show_df.sort_values(by='rank')[:3]["probability"][1],
+                                               show_df.sort_values(by='rank')[:3].index[2],
+                                               show_df.sort_values(by='rank')[:3]["probability"][2]))
                 if st.button("finish"):
                     st.experimental_rerun()
 st.markdown(
-    "<p style='text-align:center; color: #C5C5C5;'>Free prototype preview. AI may sometimes provide innacurate information. This model was trained on Reddit posts in r/collegeresults. Results will be biased towards posts from the subreddit.</p>",
+    "<p style='text-align:center; color: #C5C5C5;'>Free prototype preview. AI may sometimes provide innacurate "
+    "information. This model was trained on Reddit posts in r/collegeresults. Results will be biased towards posts "
+    "from the subreddit.</p>",
     unsafe_allow_html=True,
 )
