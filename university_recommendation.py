@@ -5,6 +5,9 @@ import joblib
 from chatbox import predict_universities
 from MAB import cac_weight
 import warnings
+import time
+import openai
+
 
 warnings.filterwarnings('ignore')
 
@@ -14,7 +17,8 @@ st.set_page_config(
 st.write(
     '<div style="text-align: center;">'
     '<h1 style="color: #E1930F;">University-recommendation</h1>'
-    '<a href="https://docs.google.com/document/d/13BochD6AsN-zTQwEndk0LW0VdMjrbr0OLvmTaKGyYvc/edit?usp=sharing" target="_blank">Show me how to use this</a>'
+    '<a href="https://docs.google.com/document/d/13BochD6AsN-zTQwEndk0LW0VdMjrbr0OLvmTaKGyYvc/edit?usp=sharing" '
+    'target="_blank">Show me how to use this</a>'
     '</div>',
     unsafe_allow_html=True)
 st.markdown("""
@@ -30,6 +34,8 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+openai.api_key ="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"
+
 University_replace = {
     'University of California, Berkeley': 'University of California Berkeley',
     'University of California, Los Angeles': 'University of California Los Angeles (UCLA)',
@@ -37,6 +43,8 @@ University_replace = {
     'University of California, San Diego': 'University of California San Diego',
     'University of California, Santa Barbara': 'University of California Santa Barbara'
 }
+
+ID_weight = pd.read_csv('ID weight.csv')
 
 if 'University' not in st.session_state:
     for _ in os.listdir('models'):
@@ -81,6 +89,11 @@ numRatings = st.sidebar.slider('engagement of student and professor', 0.0, 100.0
 
 col4, col5 = st.columns([5, 5])
 with col4:
+    username = st.text_input(
+        label="username",
+        placeholder="Enter your name",
+        label_visibility='hidden'
+    )
     major = st.selectbox('Select Major', ['architecture_design', 'biology', 'computer.science',
                                           'electrical.engineering', 'english.language.and.literature',
                                           'linguistics', 'history', 'development.studies', 'philosophy',
@@ -96,6 +109,14 @@ if 'rec' in st.session_state:
         '<h2 style="color: #6495ED;">Mark For University</h2>',
         unsafe_allow_html=True)
     st.dataframe(st.session_state["rec"])
+    st.markdown("Based on your input and academic preference, It seems  that **{}** with probability "
+                "**{}**,**{}** with probability of **{}**, **{}** with probability of **{}** maybe be good "
+                "fits for you".format(st.session_state["rec"].sort_values(by='rank')[:3].index[0],
+                                      st.session_state["rec"].sort_values(by='rank')[:3]["probability"][0],
+                                      st.session_state["rec"].sort_values(by='rank')[:3].index[1],
+                                      st.session_state["rec"].sort_values(by='rank')[:3]["probability"][1],
+                                      st.session_state["rec"].sort_values(by='rank')[:3].index[2],
+                                      st.session_state["rec"].sort_values(by='rank')[:3]["probability"][2]))
     col1, col2, col21, col22, col23 = st.columns([2, 1, 1, 1, 1])
     col3, col4, col41, col42, col43 = st.columns([2, 1, 1, 1, 1])
     col5, col6, col61, col62, col63 = st.columns([2, 1, 1, 1, 1])
@@ -145,20 +166,26 @@ if 'rec' in st.session_state:
         st.session_state.pop('rec')
         cac_df = st.session_state["weight_df"]
         cac_df["User scores"] = [st.session_state["marks1"], st.session_state["marks2"], st.session_state["marks3"]]
-        st.session_state["weight"] = cac_weight(cac_df)
+        pd.concat([ID_weight, pd.DataFrame(
+            [username, cac_weight(cac_df)[0], cac_weight(cac_df)[1],
+             st.session_state["answer"]], index=ID_weight.columns).T],
+                  ignore_index=True).to_csv(
+            'ID weight.csv', index=False)
+        # st.session_state["weight"] = cac_weight(cac_df)
+        st.session_state.pop('weight_df')
         st.experimental_rerun()
 else:
-    st.markdown("<br>", unsafe_allow_html=True) #space
+    st.markdown("<br>", unsafe_allow_html=True)  # space
     st.markdown("""
 <div class="arrow"></div><strong>Check the sidebar for more preferences!</strong>
 """, unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)  
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases "
                 "that show your preference of the University?</strong></div>",
                 unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)  
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    bullet_col = st.columns([1])[0]  
+    bullet_col = st.columns([1])[0]
 
     with bullet_col:
         st.markdown("<div style='text-align:center; font-size: 24px;'>Examples:</div>", unsafe_allow_html=True)
@@ -172,107 +199,163 @@ else:
         </div>
         """
         st.markdown(bullet_list, unsafe_allow_html=True)
-
-    answer = st.text_input(
-        label="answer",
-        placeholder="Enter some key phrases",
-        label_visibility='hidden'
-    )
+    if username in ID_weight["name"].tolist():
+        try:
+            st.write("Your last answer: {}".format(ID_weight.set_index('name').loc[username, "lastphrase"].values[-1]))
+        except:
+            st.write("Your last answer: {}".format(ID_weight.set_index('name').loc[username, "lastphrase"]))
+    answer = st.text_input('Give key phrases that show your preference of University', key="text_area", placeholder='E.g.beautiful library')
     if st.button("Recommend"):
-        uni_dic = {}
-        for cl in st.session_state["University"].classes_:
-            uni_dic.update({cl: st.session_state["University"].transform([cl])[0]})
-
-        model_data = pd.read_csv('model_data.csv')
-        des_df = model_data[
-            [_ for _ in model_data.columns if _ not in [_.split('.pkl')[0] for _ in os.listdir('models')]]].describe()
-        st.write("Your Answer: {}".format(answer))
-        with st.spinner("Calculating, please wait..."):
-            pred_lis = []
-            label_dic = {
-                'major_field': major,
-                'sub_topic': topic,
-                'Technology_strategy': technology,
-                'USNEWSmajor_ranking': USNEWSmajor_ranking,
-                'qsmajor_ranking': qsmajor_ranking,
-                'thmajor_ranking': thmajor_ranking,
-                'mean_school_world_reputation': mean_school_world_reputation,
-                'mean_students_per_staff': mean_students_per_staff,
-                'mean_international_students': mean_international_students,
-                'studentview_major': studentview_major,
-                'avgRating': avgRating,
-                'numRatings': numRatings,
-                'avgDifficulty': avgDifficulty,
-                'rating': rating
-            }
-            for col in model_data.columns[1:]:
-                if col in [_.split('.pkl')[0] for _ in os.listdir('models')]:
-                    pred_lis.append(int(st.session_state[col].transform([label_dic[col]])[0]))
-                elif col in ['USNEWSmajor_ranking', 'qsmajor_ranking', 'thmajor_ranking',
-                             'mean_school_world_reputation']:
-                    pred_lis.append(
-                        (des_df.loc['max', col] - des_df.loc['min', col]) * (1 - label_dic[col] * 0.01) + des_df.loc[
-                            'min', col])
-                else:
-                    pred_lis.append(
-                        (des_df.loc['max', col] - des_df.loc['min', col]) * label_dic[col] * 0.01 + des_df.loc[
-                            'min', col])
-            show_df = pd.DataFrame(st.session_state["model"].predict_proba(
-                pd.DataFrame(pred_lis, index=model_data.columns[1:]).T
-            ), columns=list(uni_dic.keys()), index=['probability']).T
-            weight_df = show_df.reset_index().rename(columns={'index': 'University', 'probability': 'Model1'})
-
-            chat_result = predict_universities(answer)
-            weight_ = []
-            if 'weight' not in st.session_state and chat_result != 'No matching universities found.':
-                for uni in chat_result:
-                    if uni in University_replace.keys():
-                        weight_.append({'University': University_replace[uni], 'Model2': chat_result[uni]})
-                        show_df.loc[University_replace[uni], "probability"] = (show_df.loc[University_replace[
-                            uni], "probability"] + chat_result[uni]) / 2
-                    else:
-                        weight_.append({'University': uni, 'Model2': chat_result[uni]})
-                        show_df.loc[uni, "probability"] = (show_df.loc[uni, "probability"] + chat_result[uni]) / 2
-                weight_df = pd.merge(weight_df, pd.DataFrame(weight_), on='University')
-                weight_df["weight1"] = [0.5 for _ in range(weight_df.shape[0])]
-                weight_df["weight2"] = [0.5 for _ in range(weight_df.shape[0])]
-            elif 'weight' not in st.session_state and chat_result == 'No matching universities found.':
+        st.session_state["answer"] = answer
+        if username != '':
+            if username in ID_weight["name"].tolist():
+                try:
+                    st.session_state["rem_weight"] = [
+                        ID_weight.set_index('name').loc[username, "Model1weight"].values[-1],
+                        ID_weight.set_index('name').loc[username, "Model2weight"].values[-1]]
+                except:
+                    st.session_state["rem_weight"] = [ID_weight.set_index('name').loc[username, "Model1weight"],
+                                                      ID_weight.set_index('name').loc[username, "Model2weight"]]
+            else:
                 pass
-            else:
-                for uni in chat_result:
-                    if uni in University_replace.keys():
-                        show_df.loc[University_replace[uni], "probability"] = show_df.loc[University_replace[
-                            uni], "probability"] * st.session_state['weight'][0] + chat_result[uni] * \
-                                                                              st.session_state['weight'][1]
+            uni_dic = {}
+            for cl in st.session_state["University"].classes_:
+                uni_dic.update({cl: st.session_state["University"].transform([cl])[0]})
+
+            model_data = pd.read_csv('model_data.csv')
+            des_df = model_data[
+                [_ for _ in model_data.columns if
+                 _ not in [_.split('.pkl')[0] for _ in os.listdir('models')]]].describe()
+            st.write("Your Answer: {}".format(answer))
+            with st.spinner("Calculating, please wait..."):
+                pred_lis = []
+                label_dic = {
+                    'major_field': major,
+                    'sub_topic': topic,
+                    'Technology_strategy': technology,
+                    'USNEWSmajor_ranking': USNEWSmajor_ranking,
+                    'qsmajor_ranking': qsmajor_ranking,
+                    'thmajor_ranking': thmajor_ranking,
+                    'mean_school_world_reputation': mean_school_world_reputation,
+                    'mean_students_per_staff': mean_students_per_staff,
+                    'mean_international_students': mean_international_students,
+                    'studentview_major': studentview_major,
+                    'avgRating': avgRating,
+                    'numRatings': numRatings,
+                    'avgDifficulty': avgDifficulty,
+                    'rating': rating
+                }
+                for col in model_data.columns[1:]:
+                    if col in [_.split('.pkl')[0] for _ in os.listdir('models')]:
+                        pred_lis.append(int(st.session_state[col].transform([label_dic[col]])[0]))
+                    elif col in ['USNEWSmajor_ranking', 'qsmajor_ranking', 'thmajor_ranking',
+                                 'mean_school_world_reputation']:
+                        pred_lis.append(
+                            (des_df.loc['max', col] - des_df.loc['min', col]) * (1 - label_dic[col] * 0.01) +
+                            des_df.loc[
+                                'min', col])
                     else:
-                        show_df.loc[uni, "probability"] = show_df.loc[uni, "probability"] * st.session_state['weight'][
-                            0] + chat_result[uni] * st.session_state['weight'][1]
+                        pred_lis.append(
+                            (des_df.loc['max', col] - des_df.loc['min', col]) * label_dic[col] * 0.01 + des_df.loc[
+                                'min', col])
+                show_df = pd.DataFrame(st.session_state["model"].predict_proba(
+                    pd.DataFrame(pred_lis, index=model_data.columns[1:]).T
+                ), columns=list(uni_dic.keys()), index=['probability']).T
+                weight_df = show_df.reset_index().rename(columns={'index': 'University', 'probability': 'Model1'})
 
-            st.success("✅Recommend success")
-            show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
-            show_df["probability"] = show_df["probability"].map(lambda x: '{:.2f}%'.format(x*100))
-            st.dataframe(show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[["rank", "University", "probability"]])
+                chat_result = predict_universities(answer)
+                weight_ = []
+                if 'weight' not in st.session_state and 'rem_weight' not in st.session_state:
+                    for uni in chat_result:
+                        if uni in University_replace.keys():
+                            weight_.append({'University': University_replace[uni], 'Model2': chat_result[uni]})
+                            show_df.loc[University_replace[uni], "probability"] = (show_df.loc[University_replace[
+                                uni], "probability"] + chat_result[uni]) / 2
+                        else:
+                            weight_.append({'University': uni, 'Model2': chat_result[uni]})
+                            show_df.loc[uni, "probability"] = (show_df.loc[uni, "probability"] + chat_result[uni]) / 2
+                    weight_df = pd.merge(weight_df, pd.DataFrame(weight_), on='University')
+                    weight_df["weight1"] = [0.5 for _ in range(weight_df.shape[0])]
+                    weight_df["weight2"] = [0.5 for _ in range(weight_df.shape[0])]
+                elif 'weight' not in st.session_state and 'rem_weight' in st.session_state:
+                    for uni in chat_result:
+                        if uni in University_replace.keys():
+                            weight_.append({'University': University_replace[uni], 'Model2': chat_result[uni]})
+                            show_df.loc[University_replace[uni], "probability"] = show_df.loc[University_replace[
+                                uni], "probability"] * st.session_state['rem_weight'][0] + chat_result[uni] * \
+                                                                                  st.session_state['rem_weight'][1]
+                        else:
+                            weight_.append({'University': uni, 'Model2': chat_result[uni]})
+                            show_df.loc[uni, "probability"] = show_df.loc[uni, "probability"] * \
+                                                              st.session_state['rem_weight'][
+                                                                  0] + chat_result[uni] * \
+                                                              st.session_state['rem_weight'][1]
+                    weight_df = pd.merge(weight_df, pd.DataFrame(weight_), on='University')
+                    weight_df["weight1"] = [0.5 for _ in range(weight_df.shape[0])]
+                    weight_df["weight2"] = [0.5 for _ in range(weight_df.shape[0])]
+                else:
+                    for uni in chat_result:
+                        if uni in University_replace.keys():
+                            show_df.loc[University_replace[uni], "probability"] = show_df.loc[University_replace[
+                                uni], "probability"] * st.session_state['weight'][0] + chat_result[uni] * \
+                                                                                  st.session_state['weight'][1]
+                        else:
+                            show_df.loc[uni, "probability"] = show_df.loc[uni, "probability"] * \
+                                                              st.session_state['weight'][
+                                                                  0] + chat_result[uni] * st.session_state['weight'][1]
 
-            if 'weight' not in st.session_state and chat_result != 'No matching universities found.':
+                st.success("✅Recommend success")
+                show_df["rank"] = show_df["probability"].rank(ascending=False).astype(int)
+                show_df["probability"] = show_df["probability"].map(lambda x: '{:.2f}%'.format(x * 100))
+                st.dataframe(show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[
+                                 ["rank", "University", "probability"]])
+
                 st.button('mark for above University')
-                st.session_state["rec"] = show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[["rank", "University", "probability"]]
-                st.session_state["weight_df"] = weight_df.set_index('University').loc[st.session_state["rec"]["University"]]
-            elif chat_result == 'No matching universities found.':
-                if st.button("finish"):
-                    st.experimental_rerun()
-            else:
-                st.session_state.pop('weight')
-                st.session_state.pop('weight_df')
-                st.write("Based on your input and academic preference, It seems  that {} with probability "
-                         "{},{} with probability of {}, {} with probability of {} maybe be good "
-                         "fits for you".format(show_df.sort_values(by='rank')[:3].index[0],
-                                               show_df.sort_values(by='rank')[:3]["probability"][0],
-                                               show_df.sort_values(by='rank')[:3].index[1],
-                                               show_df.sort_values(by='rank')[:3]["probability"][1],
-                                               show_df.sort_values(by='rank')[:3].index[2],
-                                               show_df.sort_values(by='rank')[:3]["probability"][2]))
-                if st.button("finish"):
-                    st.experimental_rerun()
+                st.session_state["rec"] = \
+                    show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[
+                        ["rank", "University", "probability"]]
+                st.session_state["weight_df"] = weight_df.set_index('University').loc[
+                    st.session_state["rec"]["University"]]
+
+                st.markdown("Based on your input and academic preference, It seems  that **{}** with probability "
+                            "**{}**,**{}** with probability of **{}**, **{}** with probability of **{}** maybe be good "
+                            "fits for you".format(show_df.sort_values(by='rank')[:3].index[0],
+                                                  show_df.sort_values(by='rank')[:3]["probability"][0],
+                                                  show_df.sort_values(by='rank')[:3].index[1],
+                                                  show_df.sort_values(by='rank')[:3]["probability"][1],
+                                                  show_df.sort_values(by='rank')[:3].index[2],
+                                                  show_df.sort_values(by='rank')[:3]["probability"][2]))
+                top_universities = show_df.sort_values(by='rank')[:3]
+
+#                 llm = OpenAI(model_name="gpt-3.5-turbo", openai_api_key=openai.api_key, temperature=0)
+#                 embeddings = OpenAIEmbeddings(openai_api_key=openai.api_key)
+
+                explanations = []
+                for uni in top_universities.index:
+                    message = {
+                        "role": "system",
+                        "content": "You are a helpful assistant."
+                    }
+                    user_message = {
+                        "role": "user",
+                        "content": f"Provide a brief summary about {answer} in {uni}."
+                    }
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[message, user_message],
+                        max_tokens=100,  # limit response to around 100 words
+                        temperature=0.2  # make output more deterministic
+                    )
+                    explanations.append(response.choices[0].message['content'])
+
+                # Display the explanations
+                for i, explanation in enumerate(explanations):
+                    st.write(f"**{top_universities.index[i]}**: {explanation}")
+
+        else:
+            st.warning("You should input you name first!")
+            time.sleep(2)
+            st.experimental_rerun()
 st.markdown(
     "<p style='text-align:center; color: #C5C5C5;'>Free prototype preview. AI may sometimes provide innacurate "
     "information. This model was trained on Reddit posts in r/collegeresults. Results will be biased towards posts "
