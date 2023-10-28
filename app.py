@@ -6,17 +6,22 @@ from chatbox import predict_universities
 from MAB import cac_weight
 import warnings
 import time
+import openai
+import requests
+import base64
+import io
+
+
+
 
 warnings.filterwarnings('ignore')
 
 st.set_page_config(
-    page_title="University-recommendation", layout="centered", page_icon="logo.png", initial_sidebar_state="collapsed"
+    page_title="Reach Best LUR Bot", layout="centered", page_icon="logo.png", initial_sidebar_state="collapsed"
 )
 st.write(
     '<div style="text-align: center;">'
-    '<h1 style="color: #E1930F;">University-recommendation</h1>'
-    '<a href="https://docs.google.com/document/d/13BochD6AsN-zTQwEndk0LW0VdMjrbr0OLvmTaKGyYvc/edit?usp=sharing" '
-    'target="_blank">Show me how to use this</a>'
+    '<h1 style="color: #E1930F;">Reach Best LUR Bot</h1>'
     '</div>',
     unsafe_allow_html=True)
 st.markdown("""
@@ -32,6 +37,8 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+
 University_replace = {
     'University of California, Berkeley': 'University of California Berkeley',
     'University of California, Los Angeles': 'University of California Los Angeles (UCLA)',
@@ -39,7 +46,42 @@ University_replace = {
     'University of California, San Diego': 'University of California San Diego',
     'University of California, Santa Barbara': 'University of California Santa Barbara'
 }
-
+def push_df_to_github(df):
+    TOKEN = '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'  # Replace with your GitHub token
+    REPO_OWNER = 'lamberlin'
+    REPO_NAME = 'University-professor-test-run'
+    FILE_PATH = 'ID%20weight.csv'
+    
+    # Convert DataFrame to CSV & Base64 encode
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False)
+    encoded_content = base64.b64encode(buffer.getvalue().encode()).decode('utf-8')
+    
+    headers = {
+        'Authorization': f'token {TOKEN}',
+        'Accept': 'application/vnd.github.v3+json',
+    }
+    
+    # Fetch the file to get its SHA
+    response = requests.get(f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}', headers=headers)
+    if response.status_code != 200:
+        print("Error fetching the file from GitHub:", response.json())
+        return
+    
+    sha = response.json()['sha']
+    
+    # Update the file
+    update_data = {
+        "message": "Updated ID weight.csv",
+        "content": encoded_content,
+        "sha": sha
+    }
+    response = requests.put(f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}', headers=headers, json=update_data)
+    
+    if response.status_code == 200:
+        print("Successfully pushed to GitHub.")
+    else:
+        print("Error pushing to GitHub:", response.json())
 ID_weight = pd.read_csv('ID weight.csv')
 
 if 'University' not in st.session_state:
@@ -54,52 +96,88 @@ st.sidebar.markdown(
     unsafe_allow_html=True)
 st.sidebar.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Proxima+Nova&display=swap');
     .big-font {
-        font-family: 'Times New Roman', Times, serif;
-        color: orange;
+        font-family: 'Proxima Nova', Arial, sans-serif;
+        color: black;
         font-size:20px !important;
         text-align:center;
         margin-bottom: 20px;
     }
 </style>
-<div class='big-font'>Other important academic preference to you</div>
+<div class='big-font'>Adjust Weights</div>
 """, unsafe_allow_html=True)
-USNEWSmajor_ranking = st.sidebar.slider('USNEWS major ranking', 0.0, 100.0, 10.0, 0.1)
-qsmajor_ranking = st.sidebar.slider('QS major ranking', 0.0, 100.0, 10.0, 0.1)
-thmajor_ranking = st.sidebar.slider('Times High Education major ranking', 0.0, 100.0, 10.0, 0.1)
-mean_school_world_reputation = st.sidebar.slider('General world reputation', 0.0, 100.0, 10.0, 0.1)
-technology = st.sidebar.selectbox('Technology Strategy', ['Technology conservative', 'Technology-philic'])
-mean_students_per_staff = st.sidebar.slider('Student culture vs Professor culture', 0.0, 100.0, 10.0, 0.1)
-mean_international_students = st.sidebar.slider('Diversed ethnic culture', 0.0, 100.0, 10.0, 0.1)
-avgDifficulty = st.sidebar.slider('Academically laid back vs academically rigorous', 0.0, 100.0, 10.0, 0.1)
-topic = st.sidebar.selectbox('students view topic', ['Online learning', 'Career opportunities',
+col1, col2 = st.sidebar.columns(2)
+
+# General preference items in the first column
+with col1:
+    with st.expander("General Preference"):
+        USNEWSmajor_ranking = st.slider('USNEWS major ranking', 0.0, 100.0, 10.0, 0.1)
+        qsmajor_ranking = st.slider('QS major ranking', 0.0, 100.0, 10.0, 0.1)
+        thmajor_ranking = st.slider('Times High Education major ranking', 0.0, 100.0, 10.0, 0.1)
+        mean_school_world_reputation = st.slider('General world reputation', 0.0, 100.0, 10.0, 0.1)
+        technology = st.selectbox('Technology Strategy', ['Technology conservative', 'Technology-philic'])
+        mean_students_per_staff = st.slider('Student culture vs Professor culture', 0.0, 100.0, 10.0, 0.1)
+        mean_international_students = st.slider('Diversed ethnic culture', 0.0, 100.0, 10.0, 0.1)
+        avgDifficulty = st.slider('Academically laid back vs academically rigorous', 0.0, 100.0, 10.0, 0.1)
+
+# Students' view items in the second column
+with col2:
+    with st.expander("Students' View"):
+        topic = st.selectbox('students view topic', ['Online learning', 'Career opportunities',
                                                      'General academic quality', 'Admission process',
                                                      'Diversity and inclusion', 'Student opportunities',
                                                      'Major programs', 'Financial aid and scholarships',
                                                      'Administration and school policies',
                                                      'Technology and computer labs'])
-rating = st.sidebar.slider('Student view on University', 0.0, 100.0, 10.0, 0.1)
-studentview_major = st.sidebar.slider('Student view on major', 0.0, 100.0, 10.0, 0.1)
-avgRating = st.sidebar.slider('Student view on professor', 0.0, 100.0, 10.0, 0.1)
-numRatings = st.sidebar.slider('engagement of student and professor', 0.0, 100.0, 10.0, 0.1)
+        rating = st.slider('Student view on University', 0.0, 100.0, 10.0, 0.1)
+        studentview_major = st.slider('Student view on major', 0.0, 100.0, 10.0, 0.1)
+        avgRating = st.slider('Student view on professor', 0.0, 100.0, 10.0, 0.1)
+        numRatings = st.slider('engagement of student and professor', 0.0, 100.0, 10.0, 0.1)
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("<div style='font-size: 24px;'>Examples-general preference</div>", unsafe_allow_html=True)
+    general_list = """
+    <ul style='font-size: 22px; padding-left: 0; list-style-type: none;'> <!-- Adjusted the font-size here -->
+        <li><span class="copyable-text" onclick="copyToClipboard('well online leaning courses')">well online leaning courses</span></li>
+        <li><span class="copyable-text" onclick="copyToClipboard('diversed major setting')">diversed major setting</span></li>
+        <li><span class="copyable-text" onclick="copyToClipboard('beautiful library')">beautiful library</span></li>
+    </ul>
+    """
+    st.markdown(general_list, unsafe_allow_html=True)
 
+# For "Examples of specific major"
+with col2:
+    st.markdown("<div style='font-size: 24px;'>Examples-specific majors</div>", unsafe_allow_html=True)
+    major_list = """
+    <ul style='font-size: 22px; padding-left: 0; list-style-type: none;'> <!-- Adjusted the font-size here -->
+        <li><span class="copyable-text" onclick="copyToClipboard('strong engineering')">strong engineering</span></li>
+        <li><span class="copyable-text" onclick="copyToClipboard('great computer labs')">great computer labs</span></li>
+        <li><span class="copyable-text" onclick="copyToClipboard('unique CS courses')">unique CS courses</span></li>
+    </ul>
+    """
+    st.markdown(major_list, unsafe_allow_html=True)
 col4, col5 = st.columns([5, 5])
 with col4:
     username = st.text_input(
-        label="username",
-        placeholder="Enter your name",
-        label_visibility='hidden'
+        label="Save your personalized model",
+        placeholder="Enter your name"
     )
-    major = st.selectbox('Select Major', ['architecture_design', 'biology', 'computer.science',
-                                          'electrical.engineering', 'english.language.and.literature',
-                                          'linguistics', 'history', 'development.studies', 'philosophy',
-                                          'physics', 'psychology', 'political.science', 'sociology',
-                                          'accounting.and.finance', 'communication_info', 'economics',
-                                          'archeology', 'agriculture_environment', 'education', 'arts',
-                                          'medicine_health', 'chemical.engineering', 'theology_theater',
-                                          'law', 'mechanical.engineering', 'sports.sciences.and.management',
-                                          'civil.engineering', 'geography'])
 
+
+with col5:
+    major = st.selectbox(
+        'Select Major', 
+        ['architecture_design', 'biology', 'computer.science',
+         'electrical.engineering', 'english.language.and.literature',
+         'linguistics', 'history', 'development.studies', 'philosophy',
+         'physics', 'psychology', 'political.science', 'sociology',
+         'accounting.and.finance', 'communication_info', 'economics',
+         'archeology', 'agriculture_environment', 'education', 'arts',
+         'medicine_health', 'chemical.engineering', 'theology_theater',
+         'law', 'mechanical.engineering', 'sports.sciences.and.management',
+         'civil.engineering', 'geography']
+    )
 if 'rec' in st.session_state:
     st.write(
         '<h2 style="color: #6495ED;">Mark For University</h2>',
@@ -162,49 +240,26 @@ if 'rec' in st.session_state:
         st.session_state.pop('rec')
         cac_df = st.session_state["weight_df"]
         cac_df["User scores"] = [st.session_state["marks1"], st.session_state["marks2"], st.session_state["marks3"]]
-        pd.concat([ID_weight, pd.DataFrame(
+#         push_df_to_github(pd.concat([ID_weight, pd.DataFrame(
+#             [username, cac_weight(cac_df)[0], cac_weight(cac_df)[1],
+#              st.session_state["answer"]], index=ID_weight.columns).T],
+#                   ignore_index=True).to_csv(
+#             'ID weight.csv', index=False))
+        new_csv = pd.concat([ID_weight, pd.DataFrame(
             [username, cac_weight(cac_df)[0], cac_weight(cac_df)[1],
-             st.session_state["answer"]], index=ID_weight.columns).T],
-                  ignore_index=True).to_csv(
-            'ID weight.csv', index=False)
+             st.session_state["answer"]], index=ID_weight.columns).T], 
+            ignore_index=True)
+        push_df_to_github(new_csv)
         # st.session_state["weight"] = cac_weight(cac_df)
         st.session_state.pop('weight_df')
         st.experimental_rerun()
 else:
-    st.markdown("<br>", unsafe_allow_html=True)  # space
-    st.markdown("""
-<div class="arrow"></div><strong>Check the sidebar for more preferences!</strong>
-""", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<div style='font-family:Times New Roman, Times, serif; font-size: 20px;'><strong>Give me key phrases "
-                "that show your preference of the University?</strong></div>",
-                unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    bullet_col = st.columns([1])[0]
-
-    with bullet_col:
-        st.markdown("<div style='text-align:center; font-size: 24px;'>Examples:</div>", unsafe_allow_html=True)
-        bullet_list = """
-        <div style='text-align:center;'>
-            <ul style='display:inline-block; text-align:left; font-size: 22px;'> <!-- Adjusted the font-size here -->
-                <li><span class="copyable-text" onclick="copyToClipboard('well online leaning courses')">well online leaning courses</span></li>
-                <li><span class="copyable-text" onclick="copyToClipboard('diversed major setting')">diversed major setting</span></li>
-                <li><span class="copyable-text" onclick="copyToClipboard('beautiful library')">beautiful library</span></li>
-            </ul>
-        </div>
-        """
-        st.markdown(bullet_list, unsafe_allow_html=True)
+    answer = st.text_input('Give key phrases that show your preference of University', key="text_area", placeholder='E.g.beautiful library')
     if username in ID_weight["name"].tolist():
         try:
             st.write("Your last answer: {}".format(ID_weight.set_index('name').loc[username, "lastphrase"].values[-1]))
         except:
             st.write("Your last answer: {}".format(ID_weight.set_index('name').loc[username, "lastphrase"]))
-    answer = st.text_input(
-        label="answer",
-        placeholder="Enter some key phrases",
-        label_visibility='hidden'
-    )
     if st.button("Recommend"):
         st.session_state["answer"] = answer
         if username != '':
@@ -310,7 +365,14 @@ else:
                 st.dataframe(show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[
                                  ["rank", "University", "probability"]])
 
-                st.button('mark for above University')
+                st.markdown(
+    "<div style='display: block; text-align: center; margin-bottom: -10px; font-size: 0.85em;'>"
+    "💡 <i>Give feedback on the recommendations so we can make it more personalized for you</i>"
+    "</div>", 
+    unsafe_allow_html=True
+)
+                st.button('rate the output')
+                
                 st.session_state["rec"] = \
                     show_df.sort_values(by='rank')[:3].reset_index().rename(columns={'index': 'University'})[
                         ["rank", "University", "probability"]]
@@ -325,6 +387,12 @@ else:
                                                   show_df.sort_values(by='rank')[:3]["probability"][1],
                                                   show_df.sort_values(by='rank')[:3].index[2],
                                                   show_df.sort_values(by='rank')[:3]["probability"][2]))
+                top_universities = show_df.sort_values(by='rank')[:3]
+
+#                 llm = OpenAI(model_name="gpt-3.5-turbo", openai_api_key=openai.api_key, temperature=0)
+#                 embeddings = OpenAIEmbeddings(openai_api_key=openai.api_key)
+
+                
 
         else:
             st.warning("You should input you name first!")
@@ -332,7 +400,7 @@ else:
             st.experimental_rerun()
 st.markdown(
     "<p style='text-align:center; color: #C5C5C5;'>Free prototype preview. AI may sometimes provide innacurate "
-    "information. This model was trained on Reddit posts in r/collegeresults. Results will be biased towards posts "
-    "from the subreddit.</p>",
+    "information. This model was trained on Nich reviews and Rate My Professors. "
+    "</p>",
     unsafe_allow_html=True,
 )
